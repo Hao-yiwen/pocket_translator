@@ -2,20 +2,20 @@
 
 1. 签名
 ```bash
-codesign --force --deep --sign "QRCodeGenerator" ./QRCodeGenerator-Bundle/qrcode_generator.app 
+codesign --force --deep --sign "TranslatorGenerator" ./TranslatorGenerator-Bundle/pocket_translator.app 
 ```
 
 2. 校验
 ```bash
-codesign --verify --deep --strict ./QRCodeGenerator-Bundle/qrcode_generator.app 
+codesign --verify --deep --strict ./TranslatorGenerator-Bundle/pocket_translator.app 
 ```
 
 3. dmg制作
 ```bash
-ln -s /Applications "./QRCodeGenerator-Bundle/Applications"
+ln -s /Applications "./TranslatorGenerator-Bundle/Applications"
 
-hdiutil create -volname "QR Code Generator" \
-               -srcfolder QRCodeGenerator-Bundle \
+hdiutil create -volname "Pocket Translator" \
+               -srcfolder TranslatorGenerator-Bundle \
                -ov -format UDZO \
-               QRCodeGenerator.dmg
+               TranslatorGenerator.dmg
 ```
