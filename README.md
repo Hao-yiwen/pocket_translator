@@ -39,6 +39,37 @@
 - 将应用拖入 Applications 文件夹
 - 首次运行时右键点击应用选择"打开"
 
+## 使用说明
+- 🔑 API 配置
+  1. 点击状态栏图标
+  2. 点击右下角 ... 设置按钮
+  3. 配置所需的翻译服务 API：
+    - OpenAI API Key [获取教程](https://platform.openai.com/api-keys)
+    - 通义千问 API Key [获取教程](https://help.aliyun.com/zh/dashscope/developer-reference/acquisition-and-configuration-of-api-key)
+    - DeepL API Key [获取教程](https://www.deepl.com/zh/pro-api)
+    - Google 翻译 API Key [获取教程](https://cloud.google.com/translate/docs/setup)
+
+- ⚡️ 快速上手
+  1. 配置完 API 后即可使用
+  2. 点击图标快速唤起翻译窗口
+  3. 输入文本或粘贴剪贴板内容
+  4. 选择源语言和目标语言
+  5. 点击"翻译"按钮获取结果
+
+- 💡 使用建议
+  - 建议至少配置一个 API 以确保基本功能
+  - 配置多个翻译服务可对比翻译结果
+  - 可根据实际需求选择合适的翻译服务：
+    - OpenAI/通义千问：适合理解上下文的智能翻译
+    - DeepL：适合专业文档翻译
+    - Google：适合日常文本翻译
+
+- ⚠️ 注意事项
+  - 请妥善保管 API 密钥
+  - API 调用可能产生相应费用，请关注服务商的计费规则
+  - 确保网络连接正常
+  - 如遇到问题，可检查 API 配置是否正确
+
 ## 常见问题
 
 如果提示"无法打开应用程序"，请尝试：
@@ -70,9 +101,3 @@ macOS 13.0 或更高版本
 <br>
 <img src="preview/alipay_qr.jpg" alt="支付宝收款码" width="300">
 </details>
-
-:::info
-这周把我尘封的 1060 显卡笔记本拿出来搞 ai，结果发现太拉垮了，无论是 ubuntu 运行还是 ai 训练，6gb 的现存确实不够用，目前最起码 12gb 起步吧。
-
-1060 训练 1b 模型都很费劲。
-:::
