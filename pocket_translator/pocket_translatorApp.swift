@@ -414,173 +414,308 @@ class DeepLTranslationService: TranslationService {
     }
 }
 
-// MARK: - Models
-
-struct TranslationResult: Identifiable {
-    let id = UUID()
-    let serviceName: String
-    let text: String
-    var isError: Bool = false
+class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        // Hide dock icon
+        NSApp.setActivationPolicy(.accessory)
+        
+        // Optional: If you want to prevent the app from showing in Force Quit window
+        if let window = NSApplication.shared.windows.first {
+            window.level = .statusBar
+        }
+    }
 }
 
 // MARK: - Main App
 @main
 struct TranslatorApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    
     var body: some Scene {
         MenuBarExtra("Translator", systemImage: "character.bubble") {
             TranslatorView()
+                            .frame(width: 600, height: 700)
         }
         .menuBarExtraStyle(.window)
     }
 }
 
-// MARK: - Main View
+// MARK: - Modified TranslatorView
 struct TranslatorView: View {
     @State private var inputText = ""
-   @State private var translationResults: [TranslationResult] = []
-   @State private var sourceLanguage = "English"
-   @State private var targetLanguage = "Chinese"
-   @State private var isTranslating = false
-   @State private var showingSettings = false
-    @FocusState private var isInputFocused: Bool
+        @State private var translationResults: [TranslationResult] = []
+        @State private var sourceLanguage = "English"
+        @State private var targetLanguage = "Chinese"
+        @State private var isTranslating = false
+        @State private var showingSettings = false
+        @State private var showingMenu = false
+        @State private var showingDonateView = false
+        @FocusState private var isInputFocused: Bool
+        
+        private let languages = ["English", "Chinese"]
+        private let translationServices: [TranslationService] = [
+            GoogleTranslationService(),
+            DeepLTranslationService(),
+            QwenTranslationService(),
+            OpenAITranslationService(),
+        ]
     
-    private let languages = ["English", "Chinese"]
-    private let translationServices: [TranslationService] = [
-        DeepLTranslationService(),
-        QwenTranslationService(),
-        OpenAITranslationService(),
-        GoogleTranslationService()
-    ]
-    
+    private var sortedTranslationResults: [TranslationResult] {
+           translationResults.sorted { first, second in
+               // 如果第一个是错误而第二个不是，第一个应该排在后面
+               if first.isError && !second.isError {
+                   return false
+               }
+               // 如果第二个是错误而第一个不是，第一个应该排在前面
+               if !first.isError && second.isError {
+                   return true
+               }
+               // 如果都是错误或都不是错误，保持原有顺序
+               return first.serviceName < second.serviceName
+           }
+       }
+        
     var body: some View {
-        VStack(spacing: 16) {
-            // Header with Settings Button
-            HStack {
-                Text("Translator")
-                    .font(.title3)
-                    .fontWeight(.semibold)
-                Spacer()
-                Button(action: {
-                    showingSettings.toggle()
-                }) {
-                    Label("Settings", systemImage: "ellipsis.circle")
-                        .labelStyle(.iconOnly)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.borderless)
-                .popover(isPresented: $showingSettings, arrowEdge: .top) {
-                    SettingsView()
-                }
-            }
-            .padding(.bottom, 8)
-            
-            // Language selection
-            HStack {
-                Picker("From", selection: $sourceLanguage) {
-                    ForEach(languages, id: \.self) { language in
-                        Text(language).tag(language)
+            VStack(spacing: 0) {
+                // 顶部标题栏
+                HStack(spacing: 12) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "character.bubble")
+                            .foregroundColor(.secondary)
+                        Text("翻译助手")
+                            .font(.system(size: 13, weight: .medium))
                     }
-                }
-                
-                Button(action: {
-                    let temp = sourceLanguage
-                    sourceLanguage = targetLanguage
-                    targetLanguage = temp
-                }) {
-                    Image(systemName: "arrow.right.arrow.left")
-                }
-                
-                Picker("To", selection: $targetLanguage) {
-                    ForEach(languages, id: \.self) { language in
-                        Text(language).tag(language)
+                    
+                    Spacer()
+                    
+                    Text("⌘⌃Q")
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 2)
+                        .background(Color(NSColor.controlBackgroundColor))
+                        .cornerRadius(4)
+                    
+                    Button(action: {
+                        if let window = NSApp.windows.first(where: { $0.isKeyWindow }) {
+                            window.close()
+                        }
+                    }) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.secondary)
                     }
+                    .buttonStyle(.plain)
+                    .help("关闭窗口")
                 }
-            }
-            
-            // Input text field
-            ZStack(alignment: .topLeading) {
-                if inputText.isEmpty && !isInputFocused {
-                    Text("请输入内容...") // 占位符文本
-                        .foregroundColor(.gray)
-                        .padding(EdgeInsets(top: 12, leading: 16, bottom: 0, trailing: 0))
-                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(Color(NSColor.windowBackgroundColor))
                 
-                TextEditor(text: $inputText)
+                Divider()
+                
+                // 主要内容区域
+                ScrollView(.vertical, showsIndicators: false) {  // 隐藏滚动条
+                    VStack(spacing: 20) {
+                        // 语言选择区域
+                        HStack(spacing: 12) {
+                            Picker("From", selection: $sourceLanguage) {
+                                ForEach(languages, id: \.self) { language in
+                                    Text(language).tag(language)
+                                }
+                            }
+                            .frame(width: 120)
+                            
+                            Button(action: {
+                                let temp = sourceLanguage
+                                sourceLanguage = targetLanguage
+                                targetLanguage = temp
+                            }) {
+                                Image(systemName: "arrow.right.arrow.left")
+                            }
+                            .buttonStyle(.borderless)
+                            
+                            Picker("To", selection: $targetLanguage) {
+                                ForEach(languages, id: \.self) { language in
+                                    Text(language).tag(language)
+                                }
+                            }
+                            .frame(width: 120)
+                        }
+                        .padding(.top, 8)  // 给顶部一些间距
+                        
+                        // 输入文本区域
+                        VStack(spacing: 8) {
+                            HStack {
+                                Text("输入文本")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(.secondary)
+                                Spacer()
+                            }
+                            
+                            ZStack(alignment: .topLeading) {
+                                if inputText.isEmpty && !isInputFocused {
+                                    Text("请输入要翻译的文本...")
+                                        .foregroundColor(.gray)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 8)
+                                }
+                                
+                                TextEditor(text: $inputText)
+                                    .font(.system(.body))
+                                    .padding(6)
+                                    .focused($isInputFocused)
+                            }
+                            .frame(height: 120)  // 增加输入框高度
+                            .background(Color(NSColor.controlBackgroundColor))
+                            .cornerRadius(6)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 6)
+                                    .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                            )
+                        }
+                        
+                        // 翻译按钮
+                        Button(action: {
+                            Task {
+                                await translateText()
+                            }
+                        }) {
+                            if isTranslating {
+                                ProgressView()
+                                    .controlSize(.small)
+                            } else {
+                                Text("翻译")
+                                    .frame(width: 100)
+                            }
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.large)
+                        .disabled(inputText.isEmpty || isTranslating)
+                        
+                        // 翻译结果区域
+                        if !translationResults.isEmpty {
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("翻译结果")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(.secondary)
+                                
+                                VStack(spacing: 16) {
+                                    ForEach(sortedTranslationResults) { result in
+                                        TranslationResultView(result: result)
+                                    }
+                                }
+                            }
+                            .padding(.top, 8)  // 给结果区域顶部一些间距
+                        }
+                    }
+                    .padding(16)
+                }
+                .background(Color(NSColor.windowBackgroundColor))
+                
+                Divider()
+                
+                // 底部菜单栏
+                HStack {
+                    Spacer()
+                    Button(action: { showingMenu.toggle() }) {
+                        Image(systemName: "ellipsis.circle")
+                            .font(.system(size: 16))
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .popover(isPresented: $showingMenu, arrowEdge: .bottom) {
+                        VStack(spacing: 0) {
+                            Button(action: {
+                                showingSettings = true
+                                showingMenu = false
+                            }) {
+                                Label("设置", systemImage: "gear")
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                            .buttonStyle(.plain)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 6)
+                            
+                            Divider()
+                            
+                            Button(action: {
+                                showingDonateView = true
+                                showingMenu = false
+                            }) {
+                                Label("请我喝咖啡", systemImage: "cup.and.saucer.fill")
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                            .buttonStyle(.plain)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 6)
+                            
+                            Divider()
+                            
+                            Button(action: {
+                                NSApplication.shared.terminate(nil)
+                            }) {
+                                Label("退出应用", systemImage: "power")
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                            .buttonStyle(.plain)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 6)
+                        }
+                        .padding(4)
+                        .frame(width: 200)
+                    }
+                    .popover(isPresented: $showingSettings) {
+                        SettingsView()
+                            .frame(width: 400, height: 400)  // 设置面板尺寸
+                    }
+                    .popover(isPresented: $showingDonateView) {
+                        DonateView()
+                            .frame(width: 300, height: 400)  // 打赏面板尺寸
+                    }
                     .padding(8)
-                    .font(.body)
-                    .frame(height: 80)
-                    .border(Color.gray.opacity(0.2))
-                    .focused($isInputFocused) // 绑定焦点状态
-            }
-            
-            // Translate button
-            Button(action: {
-                Task {
-                    await translateText()
                 }
-            }) {
-                if isTranslating {
-                    ProgressView()
-                } else {
-                    Text("Translate")
-                        .frame(maxWidth: .infinity)
-                }
+                .background(Color(NSColor.windowBackgroundColor))
             }
-            .buttonStyle(.borderedProminent)
-            .disabled(inputText.isEmpty || isTranslating)
-            
-            // Results
-            ScrollView {
-                VStack(spacing: 12) {
-                    ForEach(translationResults) { result in
-                        TranslationResultView(result: result)
-                            .transition(.opacity)
-                    }
-                }
-            }
-            .frame(height: 200)
         }
-        .padding()
-        .frame(width: 400)
-        .background(Color(NSColor.windowBackgroundColor))
-    }
     
     private func translateText() async {
-        isTranslating = true
-        translationResults = Array(repeating: TranslationResult(serviceName: "", text: ""), count: translationServices.count)
-        
-        await withTaskGroup(of: (Int, TranslationResult).self) { group in
-            for (index, service) in translationServices.enumerated() {
-                group.addTask {
-                    do {
-                        let result = try await service.translate(
-                            inputText,
-                            from: sourceLanguage.lowercased(),
-                            to: targetLanguage.lowercased()
-                        )
-                        let translationResult = TranslationResult(serviceName: service.name, text: result)
-                        return (index, translationResult)
-                    } catch {
-                        let translationResult = TranslationResult(
-                            serviceName: service.name,
-                            text: error.localizedDescription,
-                            isError: true
-                        )
-                        return (index, translationResult)
+            isTranslating = true
+            translationResults = []
+            
+            await withTaskGroup(of: TranslationResult?.self) { group in
+                for service in translationServices {
+                    group.addTask {
+                        do {
+                            let result = try await service.translate(
+                                inputText,
+                                from: sourceLanguage.lowercased(),
+                                to: targetLanguage.lowercased()
+                            )
+                            return TranslationResult(
+                                serviceName: service.name,
+                                text: result,
+                                isError: false
+                            )
+                        } catch {
+                            return TranslationResult(
+                                serviceName: service.name,
+                                text: "翻译失败: \(error.localizedDescription)",
+                                isError: true
+                            )
+                        }
+                    }
+                }
+                
+                for await result in group {
+                    if let result = result {
+                        translationResults.append(result)
                     }
                 }
             }
             
-            for await (index, result) in group {
-                translationResults[index] = result
-            }
+            isTranslating = false
         }
-        
-        // 移除未完成或空的结果
-        translationResults = translationResults.filter { !$0.serviceName.isEmpty }
-        
-        isTranslating = false
-    }
 }
 
 
@@ -834,55 +969,72 @@ struct TranslationResultView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text(result.serviceName)
-                    .font(.headline)
-                    .foregroundColor(result.isError ? .red : .primary)
+                // 服务名称和状态图标
+                HStack(spacing: 4) {
+                    Text(result.serviceName)
+                        .font(.headline)
+                    
+                    // 状态图标
+                    Image(systemName: result.isError ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
+                        .foregroundColor(result.isError ? .red : .green)
+                        .font(.system(size: 12))
+                }
+                .foregroundColor(result.isError ? .red : .primary)
                 
                 Spacer()
                 
-                Button {
-                    copyToClipboard(result.text)
-                    withAnimation {
-                        isCopied = true
-                    }
-                    // 2秒后重置复制状态
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                // 复制按钮
+                if !result.isError {
+                    Button(action: {
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(result.text, forType: .string)
+                        
                         withAnimation {
-                            isCopied = false
+                            isCopied = true
                         }
-                    }
-                } label: {
-                    Image(systemName: isCopied ? "checkmark.circle.fill" : "doc.on.doc")
+                        
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                            withAnimation {
+                                isCopied = false
+                            }
+                        }
+                    }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: isCopied ? "checkmark.circle.fill" : "doc.on.doc")
+                            Text(isCopied ? "已复制" : "复制")
+                                .font(.system(size: 12))
+                        }
                         .foregroundColor(isCopied ? .green : .primary)
-                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
-                .help("Copy translation")
             }
             
+            // 结果文本
             Text(result.text)
+                .font(.system(.body))
+                .foregroundColor(result.isError ? .red : .primary)
                 .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(8)
-                .background {
+                .padding(12)
+                .background(
                     RoundedRectangle(cornerRadius: 6)
-                        .fill(Color(.textBackgroundColor))
-                }
-                .contextMenu {
-                    Button {
-                        copyToClipboard(result.text)
-                    } label: {
-                        Label("Copy", systemImage: "doc.on.doc")
-                    }
-                }
+                        .fill(Color(NSColor.controlBackgroundColor))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 6)
+                                .stroke(result.isError ? Color.red.opacity(0.3) : Color.gray.opacity(0.2), lineWidth: 1)
+                        )
+                )
         }
-        .padding(.horizontal, 4)
     }
-    
-    private func copyToClipboard(_ text: String) {
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(text, forType: .string)
-    }
+}
+
+// 修改 TranslationResult 结构
+struct TranslationResult: Identifiable {
+    let id = UUID()
+    let serviceName: String
+    let text: String
+    let isError: Bool
 }
 
 class QwenTranslationService: TranslationService {
@@ -977,5 +1129,28 @@ class QwenTranslationService: TranslationService {
         } else {
             throw TranslationError.noResult("无法获取翻译结果")
         }
+    }
+}
+
+struct DonateView: View {
+    var body: some View {
+        VStack(spacing: 16) {
+            Text("感谢您的支持！")
+                .font(.headline)
+            
+            Image("alipay-qr") // 确保在 Assets.xcassets 中添加您的收款码图片
+                .resizable()
+                .scaledToFit()
+                .frame(width: 200, height: 300)
+                .background(Color.white)
+                .cornerRadius(8)
+                .shadow(radius: 2)
+            
+            Text("扫描上方二维码向我打赏")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+        }
+        .padding()
+        .frame(width: 300, height: 400)
     }
 }
