@@ -16,7 +16,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "F6928F5E2CE0C01F0003EC39"
-               BuildableName = "pocket_translator.app"
+               BuildableName = "&#x53e3;&#x888b;&#x7ffb;&#x8bd1;.app"
                BlueprintName = "pocket_translator"
                ReferencedContainer = "container:pocket_translator.xcodeproj">
             </BuildableReference>
@@ -45,7 +45,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "F6928F5E2CE0C01F0003EC39"
-            BuildableName = "pocket_translator.app"
+            BuildableName = "&#x53e3;&#x888b;&#x7ffb;&#x8bd1;.app"
             BlueprintName = "pocket_translator"
             ReferencedContainer = "container:pocket_translator.xcodeproj">
          </BuildableReference>
@@ -62,7 +62,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "F6928F5E2CE0C01F0003EC39"
-            BuildableName = "pocket_translator.app"
+            BuildableName = "&#x53e3;&#x888b;&#x7ffb;&#x8bd1;.app"
             BlueprintName = "pocket_translator"
             ReferencedContainer = "container:pocket_translator.xcodeproj">
          </BuildableReference>
