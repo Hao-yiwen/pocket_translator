@@ -4,23 +4,74 @@ import SwiftUI
 enum AppTheme {
     static let accent = Color(red: 0.22, green: 0.36, blue: 0.94)
     static let accentAlt = Color(red: 0.10, green: 0.65, blue: 0.78)
-    static let warm = Color(red: 0.96, green: 0.92, blue: 0.86)
-    static let surface = Color(NSColor.windowBackgroundColor).opacity(0.9)
-    static let surfaceStrong = Color(NSColor.controlBackgroundColor)
-    static let border = Color.black.opacity(0.08)
-    static let shadow = Color.black.opacity(0.12)
     static let success = Color(red: 0.17, green: 0.68, blue: 0.39)
     static let danger = Color(red: 0.86, green: 0.28, blue: 0.30)
 
+    // 动态颜色 - 自动适配暗黑模式
+    static var warm: Color {
+        Color(nsColor: NSColor(name: nil, dynamicProvider: { appearance in
+            if appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua {
+                return NSColor(red: 0.20, green: 0.18, blue: 0.16, alpha: 1.0)
+            } else {
+                return NSColor(red: 0.96, green: 0.92, blue: 0.86, alpha: 1.0)
+            }
+        }))
+    }
+
+    static var surface: Color {
+        Color(NSColor.windowBackgroundColor).opacity(0.9)
+    }
+
+    static var surfaceStrong: Color {
+        Color(NSColor.controlBackgroundColor)
+    }
+
+    static var border: Color {
+        Color(nsColor: NSColor(name: nil, dynamicProvider: { appearance in
+            if appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua {
+                return NSColor.white.withAlphaComponent(0.12)
+            } else {
+                return NSColor.black.withAlphaComponent(0.08)
+            }
+        }))
+    }
+
+    static var shadow: Color {
+        Color(nsColor: NSColor(name: nil, dynamicProvider: { appearance in
+            if appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua {
+                return NSColor.black.withAlphaComponent(0.3)
+            } else {
+                return NSColor.black.withAlphaComponent(0.12)
+            }
+        }))
+    }
+
+    static func backgroundGradient(for colorScheme: ColorScheme) -> LinearGradient {
+        if colorScheme == .dark {
+            return LinearGradient(
+                colors: [
+                    Color(red: 0.11, green: 0.11, blue: 0.12),
+                    Color(red: 0.14, green: 0.15, blue: 0.18)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        } else {
+            return LinearGradient(
+                colors: [
+                    Color(red: 0.96, green: 0.95, blue: 0.93),
+                    Color(red: 0.91, green: 0.94, blue: 0.98)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        }
+    }
+
+    // 保留静态属性以兼容现有代码
     static var backgroundGradient: LinearGradient {
-        LinearGradient(
-            colors: [
-                Color(red: 0.96, green: 0.95, blue: 0.93),
-                Color(red: 0.91, green: 0.94, blue: 0.98)
-            ],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
+        let isDark = NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        return backgroundGradient(for: isDark ? .dark : .light)
     }
 
     static var accentGradient: LinearGradient {
@@ -29,6 +80,17 @@ enum AppTheme {
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
+    }
+
+    // 用于按钮背景等需要半透明效果的地方
+    static var overlayBackground: Color {
+        Color(nsColor: NSColor(name: nil, dynamicProvider: { appearance in
+            if appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua {
+                return NSColor.white.withAlphaComponent(0.08)
+            } else {
+                return NSColor.black.withAlphaComponent(0.06)
+            }
+        }))
     }
 }
 
@@ -154,6 +216,15 @@ extension View {
     }
 }
 
+// MARK: - Dynamic Background View
+struct DynamicBackground: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        AppTheme.backgroundGradient(for: colorScheme)
+    }
+}
+
 // MARK: - Translation Result View
 struct TranslationResultView: View {
     let result: TranslationResult
@@ -204,7 +275,7 @@ struct TranslationResultView: View {
                         .padding(.vertical, 4)
                         .background(
                             Capsule()
-                                .fill(Color.black.opacity(0.06))
+                                .fill(AppTheme.overlayBackground)
                         )
                     }
                     .buttonStyle(.plain)
@@ -287,7 +358,7 @@ struct ProviderRowView: View {
                     .padding(6)
                     .background(
                         Circle()
-                            .fill(Color.black.opacity(0.06))
+                            .fill(AppTheme.overlayBackground)
                     )
             }
             .buttonStyle(.plain)
@@ -343,7 +414,7 @@ struct ProviderEditView: View {
 
     var body: some View {
         ZStack {
-            AppTheme.backgroundGradient
+            DynamicBackground()
                 .ignoresSafeArea()
 
             VStack(spacing: 18) {
@@ -417,7 +488,7 @@ struct ProviderEditView: View {
                     .foregroundColor(.secondary)
                     .background(
                         Capsule()
-                            .fill(Color.black.opacity(0.08))
+                            .fill(AppTheme.overlayBackground)
                     )
 
                     Button("保存") {
@@ -445,7 +516,7 @@ struct ProviderEditView: View {
 struct DonateView: View {
     var body: some View {
         ZStack {
-            AppTheme.backgroundGradient
+            DynamicBackground()
                 .ignoresSafeArea()
 
             VStack(spacing: 16) {
@@ -526,7 +597,7 @@ struct ModeToggle: View {
         .padding(4)
         .background(
             Capsule()
-                .fill(Color.black.opacity(0.06))
+                .fill(AppTheme.overlayBackground)
         )
     }
 }
@@ -738,7 +809,7 @@ struct VisionProviderRowView: View {
                     .padding(6)
                     .background(
                         Circle()
-                            .fill(Color.black.opacity(0.06))
+                            .fill(AppTheme.overlayBackground)
                     )
             }
             .buttonStyle(.plain)
@@ -793,7 +864,7 @@ struct VisionProviderEditView: View {
 
     var body: some View {
         ZStack {
-            AppTheme.backgroundGradient
+            DynamicBackground()
                 .ignoresSafeArea()
 
             VStack(spacing: 18) {
@@ -867,7 +938,7 @@ struct VisionProviderEditView: View {
                     .foregroundColor(.secondary)
                     .background(
                         Capsule()
-                            .fill(Color.black.opacity(0.08))
+                            .fill(AppTheme.overlayBackground)
                     )
 
                     Button("保存") {

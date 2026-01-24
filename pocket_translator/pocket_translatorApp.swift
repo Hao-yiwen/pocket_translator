@@ -58,11 +58,30 @@ class WindowManager {
 class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var popover: NSPopover!
+    private var hasShownInitialPopover = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Hide dock icon
         NSApp.setActivationPolicy(.accessory)
 
+        // 设置状态栏项
+        setupStatusItem()
+
+        // 首次启动时显示 popover
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            guard let self = self, !self.hasShownInitialPopover else { return }
+            self.hasShownInitialPopover = true
+            self.showPopover()
+        }
+    }
+
+    // 用户再次打开应用时显示 popover（从 Finder/Spotlight 打开）
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        showPopover()
+        return true
+    }
+
+    private func setupStatusItem() {
         // 创建状态栏图标
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = statusItem.button {
@@ -93,32 +112,47 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if popover.isShown {
             popover.performClose(nil)
         } else {
-            if let button = statusItem.button {
-                // 记录当前鼠标所在的屏幕
-                let mouseLocation = NSEvent.mouseLocation
-                let currentScreen = NSScreen.screens.first { screen in
-                    screen.frame.contains(mouseLocation)
-                } ?? NSScreen.main
+            showPopover()
+        }
+    }
 
-                popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+    private func showPopover() {
+        guard let button = statusItem.button else { return }
 
-                // 确保 popover 窗口可以接收键盘输入
-                if let window = popover.contentViewController?.view.window {
-                    window.makeKey()
-                    // 不跟随空间切换
-                    window.collectionBehavior = [.stationary, .ignoresCycle]
+        // 如果已经显示，只需激活窗口
+        if popover.isShown {
+            if let window = popover.contentViewController?.view.window {
+                window.makeKey()
+                NSApp.activate(ignoringOtherApps: true)
+            }
+            return
+        }
 
-                    // 如果窗口不在原屏幕上，移回去
-                    if let screen = currentScreen, !screen.frame.intersects(window.frame) {
-                        let newOrigin = NSPoint(
-                            x: screen.frame.midX - window.frame.width / 2,
-                            y: screen.frame.maxY - window.frame.height - 30
-                        )
-                        window.setFrameOrigin(newOrigin)
-                    }
-                }
+        // 记录当前鼠标所在的屏幕
+        let mouseLocation = NSEvent.mouseLocation
+        let currentScreen = NSScreen.screens.first { screen in
+            screen.frame.contains(mouseLocation)
+        } ?? NSScreen.main
+
+        popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+
+        // 确保 popover 窗口可以接收键盘输入
+        if let window = popover.contentViewController?.view.window {
+            window.makeKey()
+            // 不跟随空间切换
+            window.collectionBehavior = [.stationary, .ignoresCycle]
+
+            // 如果窗口不在原屏幕上，移回去
+            if let screen = currentScreen, !screen.frame.intersects(window.frame) {
+                let newOrigin = NSPoint(
+                    x: screen.frame.midX - window.frame.width / 2,
+                    y: screen.frame.maxY - window.frame.height - 30
+                )
+                window.setFrameOrigin(newOrigin)
             }
         }
+
+        NSApp.activate(ignoringOtherApps: true)
     }
 }
 
@@ -267,7 +301,7 @@ struct TranslatorView: View {
 
     private var backgroundLayer: some View {
         ZStack {
-            AppTheme.backgroundGradient
+            DynamicBackground()
             Circle()
                 .fill(AppTheme.accent.opacity(0.12))
                 .frame(width: 260, height: 260)
@@ -317,7 +351,7 @@ struct TranslatorView: View {
                     .padding(6)
                     .background(
                         Circle()
-                            .fill(Color.black.opacity(0.06))
+                            .fill(AppTheme.overlayBackground)
                     )
             }
             .buttonStyle(.plain)
@@ -664,7 +698,7 @@ struct SettingsView: View {
 
     var body: some View {
         ZStack {
-            AppTheme.backgroundGradient
+            DynamicBackground()
                 .ignoresSafeArea()
             contentView
         }
