@@ -236,9 +236,12 @@ struct ProviderRowView: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Toggle("", isOn: $isEnabled)
-                .toggleStyle(.switch)
+            Toggle(isOn: $isEnabled) { EmptyView() }
+                .toggleStyle(SwitchToggleStyle())
                 .labelsHidden()
+                .controlSize(.small)
+                .frame(width: 38, height: 22, alignment: .center)
+                .fixedSize()
                 .onChange(of: isEnabled) { newValue in
                     onToggle(newValue)
                 }
