@@ -32,6 +32,27 @@ enum AppTheme {
     }
 }
 
+// MARK: - Custom Switch Toggle Style
+struct CustomSwitchToggleStyle: ToggleStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        RoundedRectangle(cornerRadius: 14)
+            .fill(configuration.isOn ? AppTheme.accent : Color.gray.opacity(0.3))
+            .frame(width: 48, height: 28)
+            .overlay(
+                Circle()
+                    .fill(Color.white)
+                    .shadow(radius: 1)
+                    .padding(3)
+                    .offset(x: configuration.isOn ? 10 : -10)
+            )
+            .onTapGesture {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    configuration.isOn.toggle()
+                }
+            }
+    }
+}
+
 // MARK: - App Fonts
 enum AppFonts {
     static func title(_ size: CGFloat) -> Font {
@@ -219,16 +240,6 @@ struct ProviderRowView: View {
     let onDelete: () -> Void
     let onToggle: (Bool) -> Void
 
-    @State private var isEnabled: Bool
-
-    init(provider: ProviderConfig, onEdit: @escaping () -> Void, onDelete: @escaping () -> Void, onToggle: @escaping (Bool) -> Void) {
-        self.provider = provider
-        self.onEdit = onEdit
-        self.onDelete = onDelete
-        self.onToggle = onToggle
-        self._isEnabled = State(initialValue: provider.isEnabled)
-    }
-
     private var initials: String {
         guard let first = provider.name.first else { return "?" }
         return String(first).uppercased()
@@ -236,15 +247,12 @@ struct ProviderRowView: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Toggle(isOn: $isEnabled) { EmptyView() }
-                .toggleStyle(SwitchToggleStyle())
-                .labelsHidden()
-                .controlSize(.small)
-                .frame(width: 38, height: 22, alignment: .center)
-                .fixedSize()
-                .onChange(of: isEnabled) { newValue in
-                    onToggle(newValue)
-                }
+            Toggle("", isOn: Binding(
+                get: { provider.isEnabled },
+                set: { onToggle($0) }
+            ))
+            .toggleStyle(CustomSwitchToggleStyle())
+            .labelsHidden()
 
             ZStack {
                 Circle()
@@ -265,7 +273,7 @@ struct ProviderRowView: View {
 
             Spacer()
 
-            CapsuleTag(isEnabled ? "启用" : "停用", systemImage: isEnabled ? "checkmark.circle.fill" : "pause.circle.fill", tint: isEnabled ? AppTheme.success : AppTheme.danger)
+            CapsuleTag(provider.isEnabled ? "启用" : "停用", systemImage: provider.isEnabled ? "checkmark.circle.fill" : "pause.circle.fill", tint: provider.isEnabled ? AppTheme.success : AppTheme.danger)
 
             Button(action: onEdit) {
                 Image(systemName: "pencil")

@@ -10,7 +10,11 @@ struct ProviderConfig: Codable, Identifiable, Equatable {
     var isEnabled: Bool = true
 
     static func == (lhs: ProviderConfig, rhs: ProviderConfig) -> Bool {
-        lhs.id == rhs.id
+        lhs.id == rhs.id &&
+        lhs.name == rhs.name &&
+        lhs.baseURL == rhs.baseURL &&
+        lhs.modelName == rhs.modelName &&
+        lhs.isEnabled == rhs.isEnabled
     }
 }
 

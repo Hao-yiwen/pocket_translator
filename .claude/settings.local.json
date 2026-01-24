@@ -6,7 +6,13 @@
       "Bash(sips -g all:*)",
       "Bash(python3:*)",
       "Bash(pip3 install:*)",
-      "Bash(security find-identity:*)"
+      "Bash(security find-identity:*)",
+      "Bash(pkill:*)",
+      "Bash(killall:*)",
+      "WebSearch",
+      "WebFetch(domain:www.hackingwithswift.com)",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__query-docs"
     ]
   }
 }

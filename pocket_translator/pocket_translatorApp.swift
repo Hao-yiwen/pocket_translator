@@ -6,9 +6,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Hide dock icon
         NSApp.setActivationPolicy(.accessory)
 
-        // Optional: If you want to prevent the app from showing in Force Quit window
-        if let window = NSApplication.shared.windows.first {
-            window.level = .statusBar
+        // 延迟配置窗口，确保 MenuBarExtra 窗口已创建
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            self.configureWindow()
+        }
+    }
+
+    private func configureWindow() {
+        for window in NSApplication.shared.windows {
+            // MenuBarExtra 的窗口通常是 NSPanel
+            if let panel = window as? NSPanel {
+                // 设置为非激活面板，不会因为其他窗口（如系统 Keychain 弹窗）获得焦点而关闭
+                panel.becomesKeyOnlyIfNeeded = true
+                panel.hidesOnDeactivate = false
+            }
         }
     }
 }
