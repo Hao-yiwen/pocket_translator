@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXFileReference section */
-		F6928F5F2CE0C01F0003EC39 /* pocket_translator.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = pocket_translator.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		F6928F5F2CE0C01F0003EC39 /* 口袋翻译.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "口袋翻译.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -40,7 +40,7 @@
 		F6928F602CE0C01F0003EC39 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				F6928F5F2CE0C01F0003EC39 /* pocket_translator.app */,
+				F6928F5F2CE0C01F0003EC39 /* 口袋翻译.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -67,7 +67,7 @@
 			packageProductDependencies = (
 			);
 			productName = pocket_translator;
-			productReference = F6928F5F2CE0C01F0003EC39 /* pocket_translator.app */;
+			productReference = F6928F5F2CE0C01F0003EC39 /* 口袋翻译.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -266,7 +266,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.5;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.yiwen.pocket-translator";
 				PRODUCT_NAME = "口袋翻译";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -297,7 +297,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.5;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.yiwen.pocket-translator";
 				PRODUCT_NAME = "口袋翻译";
 				SWIFT_EMIT_LOC_STRINGS = YES;

@@ -99,6 +99,7 @@ struct SectionCard<Content: View>: View {
             }
             content
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(padding)
         .background(
             RoundedRectangle(cornerRadius: 16)
@@ -158,6 +159,10 @@ struct TranslationResultView: View {
     let result: TranslationResult
     @State private var isCopied = false
 
+    private var markdownText: AttributedString {
+        (try? AttributedString(markdown: result.text, options: AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace))) ?? AttributedString(result.text)
+    }
+
     var body: some View {
         let statusColor = result.isError ? AppTheme.danger : AppTheme.success
         let cardTint = result.isError ? AppTheme.danger.opacity(0.08) : AppTheme.accentAlt.opacity(0.08)
@@ -206,7 +211,7 @@ struct TranslationResultView: View {
                 }
             }
 
-            Text(result.text)
+            Text(markdownText)
                 .font(AppFonts.body(13))
                 .foregroundColor(result.isError ? AppTheme.danger : .primary)
                 .textSelection(.enabled)
@@ -373,7 +378,7 @@ struct ProviderEditView: View {
                             Text("模型名称")
                                 .font(AppFonts.body(12))
                                 .foregroundStyle(.secondary)
-                            TextField("例如: gpt-4o, deepseek-chat", text: $provider.modelName)
+                            TextField("例如: deepseek-chat, doubao-seed-1.8", text: $provider.modelName)
                                 .textFieldStyle(.roundedBorder)
                         }
 
@@ -383,6 +388,17 @@ struct ProviderEditView: View {
                                 .foregroundStyle(.secondary)
                             SecureField("输入 API Key", text: $apiKey)
                                 .textFieldStyle(.roundedBorder)
+                        }
+
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("自定义参数 (JSON)")
+                                .font(AppFonts.body(12))
+                                .foregroundStyle(.secondary)
+                            TextField("{\"reasoning_effort\": \"medium\"}", text: $provider.customParams)
+                                .textFieldStyle(.roundedBorder)
+                            Text("可选，用于添加额外的 API 参数")
+                                .font(AppFonts.body(10))
+                                .foregroundStyle(.tertiary)
                         }
 
                         Toggle("启用此供应商", isOn: $provider.isEnabled)
@@ -467,5 +483,410 @@ struct DonateView: View {
             .padding(20)
         }
         .frame(width: 320, height: 420)
+    }
+}
+
+// MARK: - Mode Toggle
+struct ModeToggle: View {
+    @Binding var mode: TranslationMode
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(TranslationMode.allCases, id: \.self) { m in
+                Button(action: {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        mode = m
+                    }
+                }) {
+                    HStack(spacing: 6) {
+                        Image(systemName: m == .text ? "doc.text" : "photo")
+                            .font(.system(size: 12))
+                        Text(m.rawValue)
+                            .font(AppFonts.headline(12))
+                    }
+                    .foregroundColor(mode == m ? .white : .secondary)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(
+                        Group {
+                            if mode == m {
+                                Capsule()
+                                    .fill(AppTheme.accentGradient)
+                            } else {
+                                Capsule()
+                                    .fill(Color.clear)
+                            }
+                        }
+                    )
+                    .contentShape(Capsule())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(4)
+        .background(
+            Capsule()
+                .fill(Color.black.opacity(0.06))
+        )
+    }
+}
+
+// MARK: - Image Input Card
+struct ImageInputCard: View {
+    @Binding var selectedImage: NSImage?
+    @Binding var imageData: Data?
+    @State private var isDropTargeted = false
+
+    var body: some View {
+        SectionCard(title: "图片输入", subtitle: "支持截图、粘贴或选择文件", padding: 12) {
+            VStack(spacing: 12) {
+                // 图片预览区域
+                ZStack {
+                    if let image = selectedImage {
+                        Image(nsImage: image)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(maxHeight: 160)
+                            .cornerRadius(8)
+                            .overlay(
+                                // 清除按钮
+                                Button(action: clearImage) {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .font(.system(size: 20))
+                                        .foregroundColor(.white)
+                                        .shadow(radius: 2)
+                                }
+                                .buttonStyle(.plain)
+                                .padding(8),
+                                alignment: .topTrailing
+                            )
+                    } else {
+                        // 拖拽放置区域
+                        VStack(spacing: 10) {
+                            Image(systemName: "photo.on.rectangle.angled")
+                                .font(.system(size: 32))
+                                .foregroundColor(.secondary)
+                            Text("拖拽图片到此处")
+                                .font(AppFonts.body(12))
+                                .foregroundColor(.secondary)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 120)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(isDropTargeted ? AppTheme.accent.opacity(0.1) : Color(NSColor.textBackgroundColor))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(isDropTargeted ? AppTheme.accent : AppTheme.border, style: StrokeStyle(lineWidth: isDropTargeted ? 2 : 1, dash: [6]))
+                        )
+                    }
+                }
+                .onDrop(of: [.image, .fileURL], isTargeted: $isDropTargeted) { providers in
+                    handleDrop(providers: providers)
+                    return true
+                }
+
+                // 操作按钮
+                HStack(spacing: 10) {
+                    ActionButton(title: "截取屏幕", icon: "camera.viewfinder") {
+                        Task {
+                            if let image = await ScreenshotManager.shared.captureScreen() {
+                                setImage(image)
+                            }
+                        }
+                    }
+
+                    ActionButton(title: "从剪贴板", icon: "doc.on.clipboard") {
+                        if let image = ScreenshotManager.shared.getImageFromClipboard() {
+                            setImage(image)
+                        }
+                    }
+
+                    ActionButton(title: "选择文件", icon: "folder") {
+                        Task { @MainActor in
+                            if let image = await ScreenshotManager.shared.selectImageFile() {
+                                setImage(image)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func setImage(_ image: NSImage) {
+        selectedImage = image
+        if let data = ScreenshotManager.imageToData(image) {
+            // 压缩大图片
+            imageData = ScreenshotManager.compressImageIfNeeded(data)
+        }
+    }
+
+    private func clearImage() {
+        selectedImage = nil
+        imageData = nil
+    }
+
+    private func handleDrop(providers: [NSItemProvider]) {
+        for provider in providers {
+            // 尝试加载图片
+            if provider.hasItemConformingToTypeIdentifier("public.image") {
+                provider.loadObject(ofClass: NSImage.self) { object, _ in
+                    if let image = object as? NSImage {
+                        DispatchQueue.main.async {
+                            setImage(image)
+                        }
+                    }
+                }
+                return
+            }
+
+            // 尝试加载文件 URL
+            if provider.hasItemConformingToTypeIdentifier("public.file-url") {
+                provider.loadItem(forTypeIdentifier: "public.file-url", options: nil) { item, _ in
+                    if let data = item as? Data,
+                       let url = URL(dataRepresentation: data, relativeTo: nil),
+                       let image = NSImage(contentsOf: url) {
+                        DispatchQueue.main.async {
+                            setImage(image)
+                        }
+                    }
+                }
+                return
+            }
+        }
+    }
+}
+
+// MARK: - Action Button
+struct ActionButton: View {
+    let title: String
+    let icon: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.system(size: 16))
+                Text(title)
+                    .font(AppFonts.body(10))
+            }
+            .foregroundColor(AppTheme.accent)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(AppTheme.accent.opacity(0.08))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(AppTheme.accent.opacity(0.2), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Vision Provider Row View
+struct VisionProviderRowView: View {
+    let provider: VisionProviderConfig
+    let onEdit: () -> Void
+    let onDelete: () -> Void
+    let onToggle: (Bool) -> Void
+
+    private var initials: String {
+        guard let first = provider.name.first else { return "?" }
+        return String(first).uppercased()
+    }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Toggle("", isOn: Binding(
+                get: { provider.isEnabled },
+                set: { onToggle($0) }
+            ))
+            .toggleStyle(CustomSwitchToggleStyle())
+            .labelsHidden()
+
+            ZStack {
+                Circle()
+                    .fill(AppTheme.accentAlt.opacity(0.16))
+                    .frame(width: 32, height: 32)
+                Text(initials)
+                    .font(AppFonts.headline(12))
+                    .foregroundColor(AppTheme.accentAlt)
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(provider.name.isEmpty ? "未命名" : provider.name)
+                    .font(AppFonts.headline(13))
+                Text(provider.modelName)
+                    .font(AppFonts.body(11))
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            CapsuleTag(provider.isEnabled ? "启用" : "停用", systemImage: provider.isEnabled ? "checkmark.circle.fill" : "pause.circle.fill", tint: provider.isEnabled ? AppTheme.success : AppTheme.danger)
+
+            Button(action: onEdit) {
+                Image(systemName: "pencil")
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary)
+                    .padding(6)
+                    .background(
+                        Circle()
+                            .fill(Color.black.opacity(0.06))
+                    )
+            }
+            .buttonStyle(.plain)
+            .help("编辑")
+
+            Button(action: onDelete) {
+                Image(systemName: "trash")
+                    .font(.system(size: 12))
+                    .foregroundColor(AppTheme.danger)
+                    .padding(6)
+                    .background(
+                        Circle()
+                            .fill(AppTheme.danger.opacity(0.12))
+                    )
+            }
+            .buttonStyle(.plain)
+            .help("删除")
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(AppTheme.surfaceStrong)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(AppTheme.border, lineWidth: 1)
+        )
+    }
+}
+
+// MARK: - Vision Provider Edit View
+struct VisionProviderEditView: View {
+    @State private var provider: VisionProviderConfig
+    @State private var apiKey: String = ""
+    let isNew: Bool
+    let onSave: (VisionProviderConfig, String) -> Void
+    let onCancel: () -> Void
+
+    init(provider: VisionProviderConfig, isNew: Bool, onSave: @escaping (VisionProviderConfig, String) -> Void, onCancel: @escaping () -> Void) {
+        self._provider = State(initialValue: provider)
+        self.isNew = isNew
+        self.onSave = onSave
+        self.onCancel = onCancel
+
+        if !isNew {
+            if let savedKey = VisionProviderManager.shared.getApiKey(for: provider.id) {
+                self._apiKey = State(initialValue: savedKey)
+            }
+        }
+    }
+
+    var body: some View {
+        ZStack {
+            AppTheme.backgroundGradient
+                .ignoresSafeArea()
+
+            VStack(spacing: 18) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(isNew ? "添加图片翻译服务" : "编辑图片翻译服务")
+                        .font(AppFonts.title(20))
+                    Text("配置多模态 AI 模型")
+                        .font(AppFonts.body(12))
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                SectionCard(title: "服务配置", subtitle: nil) {
+                    VStack(spacing: 14) {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("名称")
+                                .font(AppFonts.body(12))
+                                .foregroundStyle(.secondary)
+                            TextField("例如: 豆包, DeepSeek", text: $provider.name)
+                                .textFieldStyle(.roundedBorder)
+                        }
+
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Base URL")
+                                .font(AppFonts.body(12))
+                                .foregroundStyle(.secondary)
+                            TextField("https://api.openai.com/v1/chat/completions", text: $provider.baseURL)
+                                .textFieldStyle(.roundedBorder)
+                        }
+
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("模型名称")
+                                .font(AppFonts.body(12))
+                                .foregroundStyle(.secondary)
+                            TextField("例如: doubao-seed-1.8", text: $provider.modelName)
+                                .textFieldStyle(.roundedBorder)
+                        }
+
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("API Key")
+                                .font(AppFonts.body(12))
+                                .foregroundStyle(.secondary)
+                            SecureField("输入 API Key", text: $apiKey)
+                                .textFieldStyle(.roundedBorder)
+                        }
+
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("自定义参数 (JSON)")
+                                .font(AppFonts.body(12))
+                                .foregroundStyle(.secondary)
+                            TextField("{\"reasoning_effort\": \"medium\"}", text: $provider.customParams)
+                                .textFieldStyle(.roundedBorder)
+                            Text("可选，用于添加额外的 API 参数")
+                                .font(AppFonts.body(10))
+                                .foregroundStyle(.tertiary)
+                        }
+
+                        Toggle("启用此服务", isOn: $provider.isEnabled)
+                            .toggleStyle(.switch)
+                    }
+                }
+
+                HStack(spacing: 14) {
+                    Button("取消") {
+                        onCancel()
+                    }
+                    .buttonStyle(.plain)
+                    .font(AppFonts.headline(12))
+                    .padding(.horizontal, 18)
+                    .padding(.vertical, 8)
+                    .foregroundColor(.secondary)
+                    .background(
+                        Capsule()
+                            .fill(Color.black.opacity(0.08))
+                    )
+
+                    Button("保存") {
+                        onSave(provider, apiKey)
+                    }
+                    .buttonStyle(.plain)
+                    .font(AppFonts.headline(12))
+                    .padding(.horizontal, 18)
+                    .padding(.vertical, 8)
+                    .foregroundColor(.white)
+                    .background(AppTheme.accentGradient)
+                    .clipShape(Capsule())
+                    .disabled(provider.name.isEmpty || provider.baseURL.isEmpty || provider.modelName.isEmpty)
+                    .opacity(provider.name.isEmpty || provider.baseURL.isEmpty || provider.modelName.isEmpty ? 0.5 : 1)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(20)
+        }
+        .frame(width: 420)
     }
 }
