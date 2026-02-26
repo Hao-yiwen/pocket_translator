@@ -459,6 +459,7 @@ struct ProviderEditView: View {
                                 .foregroundStyle(.secondary)
                             SecureField("输入 API Key", text: $apiKey)
                                 .textFieldStyle(.roundedBorder)
+                            ApiKeyLinkView(providerName: provider.name)
                         }
 
                         VStack(alignment: .leading, spacing: 6) {
@@ -760,6 +761,53 @@ struct ActionButton: View {
     }
 }
 
+// MARK: - API Key URL Helper
+enum ApiKeyURLHelper {
+    static func apiKeyURL(for providerName: String) -> URL? {
+        let name = providerName.lowercased()
+        if name.contains("deepseek") {
+            return URL(string: "https://platform.deepseek.com/api_keys")
+        } else if name.contains("google") {
+            return URL(string: "https://console.cloud.google.com/apis/credentials")
+        } else if name.contains("豆包") || name.contains("doubao") || name.contains("volcengine") {
+            return URL(string: "https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey")
+        }
+        return nil
+    }
+}
+
+struct ApiKeyLinkView: View {
+    let providerName: String
+
+    private var url: URL? {
+        ApiKeyURLHelper.apiKeyURL(for: providerName)
+    }
+
+    var body: some View {
+        if let url = url {
+            Button(action: {
+                NSWorkspace.shared.open(url)
+            }) {
+                HStack(spacing: 4) {
+                    Image(systemName: "arrow.up.right.square")
+                        .font(.system(size: 10))
+                    Text("获取 API Key")
+                        .font(AppFonts.body(10))
+                }
+                .foregroundColor(AppTheme.accent)
+            }
+            .buttonStyle(.plain)
+            .onHover { hovering in
+                if hovering {
+                    NSCursor.pointingHand.push()
+                } else {
+                    NSCursor.pop()
+                }
+            }
+        }
+    }
+}
+
 // MARK: - Vision Provider Row View
 struct VisionProviderRowView: View {
     let provider: VisionProviderConfig
@@ -909,6 +957,7 @@ struct VisionProviderEditView: View {
                                 .foregroundStyle(.secondary)
                             SecureField("输入 API Key", text: $apiKey)
                                 .textFieldStyle(.roundedBorder)
+                            ApiKeyLinkView(providerName: provider.name)
                         }
 
                         VStack(alignment: .leading, spacing: 6) {

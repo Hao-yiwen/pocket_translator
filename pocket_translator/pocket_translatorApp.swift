@@ -764,29 +764,33 @@ struct SettingsView: View {
                 }
 
             SectionCard(title: "Google 翻译", subtitle: "备用翻译服务") {
-                HStack(spacing: 12) {
-                    SecureField("Google API Key", text: $googleApiKey)
-                        .textFieldStyle(.roundedBorder)
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 12) {
+                        SecureField("Google API Key", text: $googleApiKey)
+                            .textFieldStyle(.roundedBorder)
 
-                    Button("保存") {
-                        if googleApiKey.isEmpty {
-                            try? KeychainManager.shared.deleteApiKey(for: "Google")
-                        } else {
-                            try? KeychainManager.shared.saveApiKey(googleApiKey, for: "Google")
+                        Button("保存") {
+                            if googleApiKey.isEmpty {
+                                try? KeychainManager.shared.deleteApiKey(for: "Google")
+                            } else {
+                                try? KeychainManager.shared.saveApiKey(googleApiKey, for: "Google")
+                            }
+                            alertMessage = "已保存"
+                            showAlert = true
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                                showAlert = false
+                            }
                         }
-                        alertMessage = "已保存"
-                        showAlert = true
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                            showAlert = false
-                        }
+                        .buttonStyle(.plain)
+                        .font(AppFonts.headline(12))
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 6)
+                        .foregroundColor(.white)
+                        .background(AppTheme.accentGradient)
+                        .clipShape(Capsule())
                     }
-                    .buttonStyle(.plain)
-                    .font(AppFonts.headline(12))
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 6)
-                    .foregroundColor(.white)
-                    .background(AppTheme.accentGradient)
-                    .clipShape(Capsule())
+
+                    ApiKeyLinkView(providerName: "Google")
                 }
             }
 
