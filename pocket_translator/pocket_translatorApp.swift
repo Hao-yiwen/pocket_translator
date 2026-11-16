@@ -12,7 +12,7 @@ final class WindowManager {
     func openSettings() {
         if let window = settingsWindow, window.isVisible {
             window.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
+            NSApp.activate()
             return
         }
 
@@ -28,14 +28,14 @@ final class WindowManager {
         window.contentView = NSHostingView(rootView: SettingsView())
         window.isReleasedWhenClosed = false
         window.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+        NSApp.activate()
         settingsWindow = window
     }
 
     func openDonate() {
         if let window = donateWindow, window.isVisible {
             window.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
+            NSApp.activate()
             return
         }
 
@@ -50,12 +50,13 @@ final class WindowManager {
         window.contentView = NSHostingView(rootView: DonateView())
         window.isReleasedWhenClosed = false
         window.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+        NSApp.activate()
         donateWindow = window
     }
 }
 
 // MARK: - App Delegate
+@MainActor
 class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var popover: NSPopover!
@@ -69,8 +70,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         setupStatusItem()
 
         // 首次启动时显示 popover
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-            guard let self = self, !self.hasShownInitialPopover else { return }
+        Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(500))
+            guard let self, !self.hasShownInitialPopover else { return }
             self.hasShownInitialPopover = true
             self.showPopover()
         }
@@ -124,7 +126,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if popover.isShown {
             if let window = popover.contentViewController?.view.window {
                 window.makeKey()
-                NSApp.activate(ignoringOtherApps: true)
+                NSApp.activate()
             }
             return
         }
@@ -153,7 +155,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
-        NSApp.activate(ignoringOtherApps: true)
+        NSApp.activate()
     }
 }
 
@@ -328,7 +330,7 @@ struct TranslatorView: View {
                     .frame(width: 32, height: 32)
                 Image(systemName: "character.bubble")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.white)
+                    .foregroundStyle(.white)
             }
 
             VStack(alignment: .leading, spacing: 2) {
@@ -336,7 +338,7 @@ struct TranslatorView: View {
                     .font(AppFonts.title(15))
                 Text("多引擎 · 迅速 · 轻量")
                     .font(AppFonts.body(11))
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
             }
 
             Spacer()
@@ -348,7 +350,7 @@ struct TranslatorView: View {
             }) {
                 Image(systemName: "xmark")
                     .font(.system(size: 11, weight: .bold))
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
                     .padding(6)
                     .background(
                         Circle()
@@ -377,7 +379,7 @@ struct TranslatorView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text("源语言")
                     .font(AppFonts.body(11))
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
                 Picker("From", selection: $sourceLanguage) {
                     ForEach(languages, id: \.self) { language in
                         Text(language).tag(language)
@@ -394,7 +396,7 @@ struct TranslatorView: View {
             }) {
                 Image(systemName: "arrow.left.arrow.right")
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(AppTheme.accent)
+                    .foregroundStyle(AppTheme.accent)
                     .padding(10)
                     .background(
                         Circle()
@@ -407,7 +409,7 @@ struct TranslatorView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text("目标语言")
                     .font(AppFonts.body(11))
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
                 Picker("To", selection: $targetLanguage) {
                     ForEach(languages, id: \.self) { language in
                         Text(language).tag(language)
@@ -436,7 +438,7 @@ struct TranslatorView: View {
                     if inputText.isEmpty && !isInputFocused {
                         Text("请输入要翻译的文本…")
                             .font(AppFonts.body(11))
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                             .padding(.horizontal, 10)
                             .padding(.vertical, 8)
                     }
@@ -461,11 +463,11 @@ struct TranslatorView: View {
                 HStack {
                     Text("\(inputText.count) 字符")
                         .font(AppFonts.mono(10))
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                     Spacer()
                     Text("提示：自动判断词典 / 翻译模式")
                         .font(AppFonts.body(10))
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 }
             }
         }
@@ -492,7 +494,7 @@ struct TranslatorView: View {
                     Text(isTranslating ? "翻译中…" : "开始翻译")
                         .font(AppFonts.headline(14))
                 }
-                .foregroundColor(.white)
+                .foregroundStyle(.white)
                 .padding(.horizontal, 26)
                 .padding(.vertical, 10)
                 .background(AppTheme.accentGradient)
@@ -508,7 +510,7 @@ struct TranslatorView: View {
             if translationMode == .image && visionServices.isEmpty {
                 Text("请先在设置中配置图片翻译服务")
                     .font(AppFonts.body(11))
-                    .foregroundColor(AppTheme.danger)
+                    .foregroundStyle(AppTheme.danger)
             }
         }
     }
@@ -533,7 +535,7 @@ struct TranslatorView: View {
             Button(action: { showingMenu.toggle() }) {
                 Image(systemName: "ellipsis.circle")
                     .font(.system(size: 16))
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
             }
             .buttonStyle(.plain)
             .popover(isPresented: $showingMenu, arrowEdge: .bottom) {
@@ -786,7 +788,7 @@ struct SettingsView: View {
                         .font(AppFonts.headline(12))
                         .padding(.horizontal, 14)
                         .padding(.vertical, 6)
-                        .foregroundColor(.white)
+                        .foregroundStyle(.white)
                         .background(AppTheme.accentGradient)
                         .clipShape(Capsule())
                     }
@@ -832,7 +834,7 @@ struct SettingsView: View {
                     .font(AppFonts.headline(12))
                     .padding(.horizontal, 14)
                     .padding(.vertical, 6)
-                    .foregroundColor(AppTheme.accent)
+                    .foregroundStyle(AppTheme.accent)
                     .background(
                         Capsule()
                             .fill(AppTheme.accent.opacity(0.12))
@@ -879,7 +881,7 @@ struct SettingsView: View {
                     .font(AppFonts.headline(12))
                     .padding(.horizontal, 14)
                     .padding(.vertical, 6)
-                    .foregroundColor(AppTheme.accentAlt)
+                    .foregroundStyle(AppTheme.accentAlt)
                     .background(
                         Capsule()
                             .fill(AppTheme.accentAlt.opacity(0.12))

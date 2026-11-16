@@ -143,6 +143,17 @@ func detectInputType(_ text: String) -> InputType {
     return .sentence
 }
 
+func httpsURL(from raw: String) -> URL? {
+    let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard let url = URL(string: trimmed),
+          url.scheme?.lowercased() == "https",
+          let host = url.host,
+          !host.isEmpty else {
+        return nil
+    }
+    return url
+}
+
 // MARK: - Configurable Translation Service
 final class ConfigurableTranslationService: TranslationService, @unchecked Sendable {
     let config: ProviderConfig
@@ -159,8 +170,7 @@ final class ConfigurableTranslationService: TranslationService, @unchecked Senda
             throw TranslationError.configuration("请在设置中配置 \(config.name) 的 API Key")
         }
 
-        guard let url = URL(string: config.baseURL),
-              url.scheme?.lowercased() == "https" else {
+        guard let url = httpsURL(from: config.baseURL) else {
             throw TranslationError.invalidRequest("API 地址必须为有效的 HTTPS URL")
         }
 
@@ -625,8 +635,7 @@ final class VisionTranslationService: @unchecked Sendable {
             throw TranslationError.configuration("请在设置中配置 \(config.name) 的 API Key")
         }
 
-        guard let url = URL(string: config.baseURL),
-              url.scheme?.lowercased() == "https" else {
+        guard let url = httpsURL(from: config.baseURL) else {
             throw TranslationError.invalidRequest("API 地址必须为有效的 HTTPS URL")
         }
 
@@ -775,7 +784,6 @@ final class ScreenshotManager {
             let alert = NSAlert()
             alert.messageText = "需要屏幕录制权限"
             alert.informativeText = "请在系统设置中授权「口袋翻译」屏幕录制权限，然后重启应用。"
-            alert.alertStyle = .warning
             alert.addButton(withTitle: "打开系统设置")
             alert.addButton(withTitle: "取消")
 
@@ -800,11 +808,7 @@ final class ScreenshotManager {
 
             do {
                 try process.run()
-                await withCheckedContinuation { continuation in
-                    process.terminationHandler = { _ in
-                        continuation.resume()
-                    }
-                }
+                process.waitUntilExit()
                 try? await Task.sleep(nanoseconds: 200_000_000)
                 return true
             } catch {
@@ -844,7 +848,7 @@ final class ScreenshotManager {
         panel.level = .popUpMenu
 
         // 激活应用确保面板显示在最前
-        NSApp.activate(ignoringOtherApps: true)
+        NSApp.activate()
 
         let response = await panel.begin()
 
