@@ -206,13 +206,9 @@ struct CapsuleTag: View {
 }
 
 extension View {
-    @ViewBuilder
+    /// TextEditor 默认背景在深色/浅色主题下会盖住卡片底色，这里统一隐藏。
     func scrollBackgroundHiddenIfAvailable() -> some View {
-        if #available(macOS 13.0, *) {
-            self.scrollContentBackground(.hidden)
-        } else {
-            self
-        }
+        self.scrollContentBackground(.hidden)
     }
 }
 

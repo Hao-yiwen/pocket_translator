@@ -727,7 +727,6 @@ class VisionTranslationService {
     }
 }
 
-// MARK: - Window Manager
 import AppKit
 
 // MARK: - Screenshot Manager
@@ -736,6 +735,19 @@ class ScreenshotManager {
     static let shared = ScreenshotManager()
 
     private init() {}
+
+    /// 打开系统设置中的屏幕录制隐私页（兼容旧版 System Preferences 与新版 System Settings）
+    private func openScreenCapturePrivacySettings() {
+        let candidates = [
+            "x-apple.systempreferences:com.apple.Settings.extension.PrivacySecurity.extension?Privacy_ScreenCapture",
+            "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture"
+        ]
+        for candidate in candidates {
+            if let url = URL(string: candidate), NSWorkspace.shared.open(url) {
+                return
+            }
+        }
+    }
 
     /// 检查并请求屏幕录制权限
     func checkScreenCapturePermission() -> Bool {
@@ -767,9 +779,7 @@ class ScreenshotManager {
                 let response = alert.runModal()
 
                 if response == .alertFirstButtonReturn {
-                    if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
-                        NSWorkspace.shared.open(url)
-                    }
+                    self.openScreenCapturePrivacySettings()
                 }
 
                 // 恢复窗口层级

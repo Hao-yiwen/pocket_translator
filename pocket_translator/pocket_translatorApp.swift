@@ -290,7 +290,7 @@ struct TranslatorView: View {
                 .onAppear {
                     didAppear = true
                 }
-                .onChange(of: translationMode) { newMode in
+                .onChange(of: translationMode) { _, newMode in
                     onModeChange?(newMode)
                 }
 
@@ -340,7 +340,7 @@ struct TranslatorView: View {
 
             Spacer()
 
-            CapsuleTag("⌘⌃Q", tint: AppTheme.accent)
+            CapsuleTag("状态栏", systemImage: "menubar.rectangle", tint: AppTheme.accent)
 
             Button(action: {
                 closeAction?()
