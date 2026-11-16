@@ -61,6 +61,8 @@ open pocket_translator.xcodeproj  # 在 Xcode 中打开后运行
 
 ## Requirements
 
-- macOS 13.0+
-- Xcode 14.0+ (Swift 5.0+)
+- macOS 14.0+
+- Xcode 16.0+（Swift 5 语言模式；未启用 Swift 6 严格并发）
+- 无第三方 SPM / CocoaPods 依赖
 - 图片翻译需要屏幕录制权限
+- API Key 仅存 Keychain，禁止写入源码

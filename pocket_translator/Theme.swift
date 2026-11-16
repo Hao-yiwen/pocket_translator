@@ -156,7 +156,7 @@ struct SectionCard<Content: View>: View {
                 if let subtitle = subtitle {
                     Text(subtitle)
                         .font(AppFonts.body(12))
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 }
             }
             content
@@ -197,7 +197,7 @@ struct CapsuleTag: View {
         .font(AppFonts.mono(11))
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
-        .foregroundColor(tint)
+        .foregroundStyle(tint)
         .background(
             Capsule()
                 .fill(tint.opacity(0.12))
@@ -206,13 +206,9 @@ struct CapsuleTag: View {
 }
 
 extension View {
-    @ViewBuilder
+    /// TextEditor 默认背景在深色/浅色主题下会盖住卡片底色，这里统一隐藏。
     func scrollBackgroundHiddenIfAvailable() -> some View {
-        if #available(macOS 13.0, *) {
-            self.scrollContentBackground(.hidden)
-        } else {
-            self
-        }
+        self.scrollContentBackground(.hidden)
     }
 }
 
@@ -270,7 +266,7 @@ struct TranslationResultView: View {
                             Text(isCopied ? "已复制" : "复制")
                         }
                         .font(AppFonts.body(11))
-                        .foregroundColor(isCopied ? AppTheme.success : .secondary)
+                        .foregroundStyle(isCopied ? AppTheme.success : .secondary)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 4)
                         .background(
@@ -284,7 +280,7 @@ struct TranslationResultView: View {
 
             Text(markdownText)
                 .font(AppFonts.body(13))
-                .foregroundColor(result.isError ? AppTheme.danger : .primary)
+                .foregroundStyle(result.isError ? AppTheme.danger : .primary)
                 .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(12)
@@ -336,7 +332,7 @@ struct ProviderRowView: View {
                     .frame(width: 32, height: 32)
                 Text(initials)
                     .font(AppFonts.headline(12))
-                    .foregroundColor(AppTheme.accent)
+                    .foregroundStyle(AppTheme.accent)
             }
 
             VStack(alignment: .leading, spacing: 4) {
@@ -354,7 +350,7 @@ struct ProviderRowView: View {
             Button(action: onEdit) {
                 Image(systemName: "pencil")
                     .font(.system(size: 12))
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
                     .padding(6)
                     .background(
                         Circle()
@@ -367,7 +363,7 @@ struct ProviderRowView: View {
             Button(action: onDelete) {
                 Image(systemName: "trash")
                     .font(.system(size: 12))
-                    .foregroundColor(AppTheme.danger)
+                    .foregroundStyle(AppTheme.danger)
                     .padding(6)
                     .background(
                         Circle()
@@ -403,13 +399,6 @@ struct ProviderEditView: View {
         self.isNew = isNew
         self.onSave = onSave
         self.onCancel = onCancel
-
-        // 加载已保存的 API Key
-        if !isNew {
-            if let savedKey = ProviderManager.shared.getApiKey(for: provider.id) {
-                self._apiKey = State(initialValue: savedKey)
-            }
-        }
     }
 
     var body: some View {
@@ -488,7 +477,7 @@ struct ProviderEditView: View {
                     .font(AppFonts.headline(12))
                     .padding(.horizontal, 18)
                     .padding(.vertical, 8)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
                     .background(
                         Capsule()
                             .fill(AppTheme.overlayBackground)
@@ -501,7 +490,7 @@ struct ProviderEditView: View {
                     .font(AppFonts.headline(12))
                     .padding(.horizontal, 18)
                     .padding(.vertical, 8)
-                    .foregroundColor(.white)
+                    .foregroundStyle(.white)
                     .background(AppTheme.accentGradient)
                     .clipShape(Capsule())
                     .disabled(provider.name.isEmpty || provider.baseURL.isEmpty || provider.modelName.isEmpty)
@@ -512,6 +501,10 @@ struct ProviderEditView: View {
             .padding(20)
         }
         .frame(width: 420)
+        .task {
+            guard !isNew else { return }
+            apiKey = ProviderManager.shared.getApiKey(for: provider.id) ?? ""
+        }
     }
 }
 
@@ -528,7 +521,7 @@ struct DonateView: View {
                         .font(AppFonts.title(18))
                     Text("每一杯咖啡都是动力")
                         .font(AppFonts.body(12))
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 }
 
                 VStack(spacing: 12) {
@@ -542,7 +535,7 @@ struct DonateView: View {
 
                     Text("扫描上方二维码向我打赏")
                         .font(AppFonts.body(12))
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 }
                 .padding(16)
                 .background(
@@ -578,7 +571,7 @@ struct ModeToggle: View {
                         Text(m.rawValue)
                             .font(AppFonts.headline(12))
                     }
-                    .foregroundColor(mode == m ? .white : .secondary)
+                    .foregroundStyle(mode == m ? .white : .secondary)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
                     .background(
@@ -627,7 +620,7 @@ struct ImageInputCard: View {
                                 Button(action: clearImage) {
                                     Image(systemName: "xmark.circle.fill")
                                         .font(.system(size: 20))
-                                        .foregroundColor(.white)
+                                        .foregroundStyle(.white)
                                         .shadow(radius: 2)
                                 }
                                 .buttonStyle(.plain)
@@ -639,10 +632,10 @@ struct ImageInputCard: View {
                         VStack(spacing: 10) {
                             Image(systemName: "photo.on.rectangle.angled")
                                 .font(.system(size: 32))
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                             Text("拖拽图片到此处")
                                 .font(AppFonts.body(12))
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                         }
                         .frame(maxWidth: .infinity)
                         .frame(height: 120)
@@ -747,7 +740,7 @@ struct ActionButton: View {
                 Text(title)
                     .font(AppFonts.body(10))
             }
-            .foregroundColor(AppTheme.accent)
+            .foregroundStyle(AppTheme.accent)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 10)
             .background(
@@ -796,7 +789,7 @@ struct ApiKeyLinkView: View {
                     Text("获取 API Key")
                         .font(AppFonts.body(10))
                 }
-                .foregroundColor(AppTheme.accent)
+                .foregroundStyle(AppTheme.accent)
             }
             .buttonStyle(.plain)
             .onHover { hovering in
@@ -827,7 +820,7 @@ struct AllApiKeyLinksView: View {
                         Text("获取 \(link.name) API Key")
                             .font(AppFonts.body(10))
                     }
-                    .foregroundColor(AppTheme.accent)
+                    .foregroundStyle(AppTheme.accent)
                 }
                 .buttonStyle(.plain)
                 .onHover { hovering in
@@ -869,7 +862,7 @@ struct VisionProviderRowView: View {
                     .frame(width: 32, height: 32)
                 Text(initials)
                     .font(AppFonts.headline(12))
-                    .foregroundColor(AppTheme.accentAlt)
+                    .foregroundStyle(AppTheme.accentAlt)
             }
 
             VStack(alignment: .leading, spacing: 4) {
@@ -887,7 +880,7 @@ struct VisionProviderRowView: View {
             Button(action: onEdit) {
                 Image(systemName: "pencil")
                     .font(.system(size: 12))
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
                     .padding(6)
                     .background(
                         Circle()
@@ -900,7 +893,7 @@ struct VisionProviderRowView: View {
             Button(action: onDelete) {
                 Image(systemName: "trash")
                     .font(.system(size: 12))
-                    .foregroundColor(AppTheme.danger)
+                    .foregroundStyle(AppTheme.danger)
                     .padding(6)
                     .background(
                         Circle()
@@ -936,12 +929,6 @@ struct VisionProviderEditView: View {
         self.isNew = isNew
         self.onSave = onSave
         self.onCancel = onCancel
-
-        if !isNew {
-            if let savedKey = VisionProviderManager.shared.getApiKey(for: provider.id) {
-                self._apiKey = State(initialValue: savedKey)
-            }
-        }
     }
 
     var body: some View {
@@ -1020,7 +1007,7 @@ struct VisionProviderEditView: View {
                     .font(AppFonts.headline(12))
                     .padding(.horizontal, 18)
                     .padding(.vertical, 8)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
                     .background(
                         Capsule()
                             .fill(AppTheme.overlayBackground)
@@ -1033,7 +1020,7 @@ struct VisionProviderEditView: View {
                     .font(AppFonts.headline(12))
                     .padding(.horizontal, 18)
                     .padding(.vertical, 8)
-                    .foregroundColor(.white)
+                    .foregroundStyle(.white)
                     .background(AppTheme.accentGradient)
                     .clipShape(Capsule())
                     .disabled(provider.name.isEmpty || provider.baseURL.isEmpty || provider.modelName.isEmpty)
@@ -1044,5 +1031,9 @@ struct VisionProviderEditView: View {
             .padding(20)
         }
         .frame(width: 420)
+        .task {
+            guard !isNew else { return }
+            apiKey = VisionProviderManager.shared.getApiKey(for: provider.id) ?? ""
+        }
     }
 }

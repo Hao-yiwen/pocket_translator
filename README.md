@@ -1,7 +1,8 @@
 # 口袋翻译
 
-![macOS](https://img.shields.io/badge/macOS-13.0+-00979D?logo=apple&logoColor=white)
-![SwiftUI](https://img.shields.io/badge/SwiftUI-5.0+-0051C3?logo=swift&logoColor=white)
+![macOS](https://img.shields.io/badge/macOS-14.0+-00979D?logo=apple&logoColor=white)
+![Swift](https://img.shields.io/badge/Swift-5.0-0051C3?logo=swift&logoColor=white)
+![Xcode](https://img.shields.io/badge/Xcode-16.0+-147EFB?logo=xcode&logoColor=white)
 
 口袋翻译，运行在 macOS 状态栏的轻量级多引擎翻译工具。
 
@@ -32,7 +33,6 @@
 
 - 便捷操作
   - 📌 常驻 macOS 状态栏，随时待命
-  - ⌨️ 全局快捷键（⌘⌃Q）快速唤起
   - 🔄 一键互换源语言和目标语言
   - 📋 一键复制翻译结果
 
@@ -50,12 +50,52 @@ pocket_translator/
 └── pocket_translatorApp.swift # 主应用入口、TranslatorView、SettingsView
 ```
 
-## 安装说明
+本项目无 CocoaPods / SPM 第三方依赖，仅使用系统框架（SwiftUI、AppKit、Foundation、Security）。
 
-1. 下载 TranslatorGenerator.dmg
+## 环境要求
+
+| 项目 | 要求 |
+|------|------|
+| 系统 | macOS 14.0（Sonoma）或更高版本 |
+| 开发工具 | Xcode 16.0 或更高版本（Swift 5 语言模式） |
+| 权限 | 图片/截图翻译需要「屏幕录制」权限 |
+| 网络 | 需能访问所选翻译服务的 HTTPS API |
+
+> API Key 仅保存在本机 Keychain，请勿把密钥写入源码、提交到 Git 或放进 Info.plist。
+
+## 从源码构建与运行
+
+1. 克隆仓库并进入项目目录：
+   ```bash
+   git clone https://github.com/Hao-yiwen/pocket_translator.git
+   cd pocket_translator
+   ```
+2. 用 Xcode 打开工程：
+   ```bash
+   open pocket_translator.xcodeproj
+   ```
+3. 在 Xcode 中选择 target `pocket_translator`，确认：
+   - Signing & Capabilities：选择你自己的 Team（仓库中的 `DEVELOPMENT_TEAM` 可能与你的账号不同，本地改成自己的即可，勿提交密钥）
+   - Deployment：macOS 14.0
+4. 选择 scheme `pocket_translator`，按 `⌘R` 运行；或命令行构建：
+   ```bash
+   xcodebuild -project pocket_translator.xcodeproj -scheme pocket_translator -configuration Debug build
+   ```
+5. 应用以状态栏（Menu Bar）形式运行，Dock 中无图标；点击状态栏气泡图标即可打开翻译窗口。
+
+### 常见问题
+
+- **首次截图翻译提示权限**：在「系统设置 → 隐私与安全性 → 屏幕录制」中勾选「口袋翻译」，然后重启应用。
+- **翻译失败 / 401**：检查设置里对应供应商的 API Key 与 Base URL 是否正确。
+- **沙盒网络**：工程已开启 App Sandbox 与出站 HTTPS（`network.client`）；设置中的自定义 API 端点须为 `https://`，与服务端 ATS 默认策略一致。
+- **沙盒截图**：交互式截图依赖系统 `/usr/sbin/screencapture`；若授权后仍无法截图，请在真机上确认沙盒是否允许拉起该工具（见 PR 人工验证清单）。
+
+## 安装说明（发布包）
+
+1. 下载 TranslatorGenerator.dmg（或 Releases 中的安装包）
 2. 打开 DMG 文件
 3. 将应用拖入 Applications 文件夹
-4. 首次运行时右键点击应用选择"打开"
+4. 首次运行时右键点击应用选择「打开」
 
 ## 使用说明
 
@@ -70,13 +110,13 @@ pocket_translator/
 - [获取教程](https://cloud.google.com/translate/docs/setup)
 
 **AI 翻译供应商（文本翻译）**
-- 点击"添加供应商"
+- 点击「添加供应商」
 - 填写名称、API 端点、模型名称和 API Key
 - 可选：添加自定义参数（JSON 格式）
 - 支持任何 OpenAI 兼容的 API 服务
 
 **图片翻译服务**
-- 点击"添加图片翻译服务"
+- 点击「添加图片翻译服务」
 - 配置支持视觉能力的多模态 AI 模型
 - 需要模型支持图片输入（如豆包、Gemini、GPT-4o 等）
 
@@ -97,21 +137,21 @@ pocket_translator/
 ### 快速上手
 
 1. 配置至少一个翻译服务的 API Key
-2. 点击状态栏图标或使用快捷键 ⌘⌃Q 唤起窗口
+2. 点击状态栏图标唤起窗口
 3. 选择翻译模式（文本/截图）
 4. 输入文本或选择图片
 5. 选择源语言和目标语言
-6. 点击"开始翻译"获取多引擎结果
+6. 点击「开始翻译」获取多引擎结果
 
 ### 图片翻译使用
 
 1. 在设置中配置图片翻译服务
-2. 切换到"截图"模式
+2. 切换到「截图」模式
 3. 选择图片来源：
    - 📷 截图：框选屏幕区域
    - 📋 粘贴：从剪贴板粘贴
    - 📁 选择文件：从本地选择图片
-4. 点击"开始翻译"
+4. 点击「开始翻译」
 
 ### 注意事项
 
@@ -119,10 +159,6 @@ pocket_translator/
 - API 调用可能产生相应费用，请关注服务商的计费规则
 - 图片翻译需要屏幕录制权限（首次使用时会提示授权）
 - 确保网络连接正常
-
-## 系统要求
-
-macOS 13.0 或更高版本
 
 ## 预览
 
