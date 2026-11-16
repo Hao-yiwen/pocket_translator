@@ -261,6 +261,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = "口袋翻译";
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSScreenCaptureUsageDescription = "需要屏幕录制权限来进行截图翻译";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -293,6 +294,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = "口袋翻译";
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSScreenCaptureUsageDescription = "需要屏幕录制权限来进行截图翻译";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",

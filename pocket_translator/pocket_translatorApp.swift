@@ -1,7 +1,8 @@
 import SwiftUI
 
 // MARK: - Window Manager
-class WindowManager {
+@MainActor
+final class WindowManager {
     static let shared = WindowManager()
     private var settingsWindow: NSWindow?
     private var donateWindow: NSWindow?
@@ -588,26 +589,28 @@ struct TranslatorView: View {
     }
 
     private func translateText() async {
+        let text = inputText
+        let source = sourceLanguage.lowercased()
+        let target = targetLanguage.lowercased()
+        let services = translationServices
+
         isTranslating = true
         translationResults = []
 
         await withTaskGroup(of: TranslationResult?.self) { group in
-            for service in translationServices {
+            for service in services {
+                let serviceName = service.name
                 group.addTask {
                     do {
-                        let result = try await service.translate(
-                            inputText,
-                            from: sourceLanguage.lowercased(),
-                            to: targetLanguage.lowercased()
-                        )
+                        let result = try await service.translate(text, from: source, to: target)
                         return TranslationResult(
-                            serviceName: service.name,
+                            serviceName: serviceName,
                             text: result,
                             isError: false
                         )
                     } catch {
                         return TranslationResult(
-                            serviceName: service.name,
+                            serviceName: serviceName,
                             text: "翻译失败: \(error.localizedDescription)",
                             isError: true
                         )
@@ -616,10 +619,9 @@ struct TranslatorView: View {
             }
 
             for await result in group {
-                if let result = result {
-                    withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
-                        translationResults.append(result)
-                    }
+                guard let result else { continue }
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                    translationResults.append(result)
                 }
             }
         }
@@ -628,12 +630,15 @@ struct TranslatorView: View {
     }
 
     private func translateImage() async {
-        guard let imageData = imageData else { return }
+        guard let imageData else { return }
+
+        let source = sourceLanguage.lowercased()
+        let target = targetLanguage.lowercased()
+        let services = visionServices
 
         isTranslating = true
         translationResults = []
 
-        let services = visionServices
         if services.isEmpty {
             translationResults.append(TranslationResult(
                 serviceName: "系统",
@@ -646,21 +651,18 @@ struct TranslatorView: View {
 
         await withTaskGroup(of: TranslationResult?.self) { group in
             for service in services {
+                let serviceName = service.name
                 group.addTask {
                     do {
-                        let result = try await service.translateImage(
-                            imageData,
-                            from: sourceLanguage.lowercased(),
-                            to: targetLanguage.lowercased()
-                        )
+                        let result = try await service.translateImage(imageData, from: source, to: target)
                         return TranslationResult(
-                            serviceName: service.name,
+                            serviceName: serviceName,
                             text: result,
                             isError: false
                         )
                     } catch {
                         return TranslationResult(
-                            serviceName: service.name,
+                            serviceName: serviceName,
                             text: "翻译失败: \(error.localizedDescription)",
                             isError: true
                         )
@@ -669,10 +671,9 @@ struct TranslatorView: View {
             }
 
             for await result in group {
-                if let result = result {
-                    withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
-                        translationResults.append(result)
-                    }
+                guard let result else { continue }
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                    translationResults.append(result)
                 }
             }
         }

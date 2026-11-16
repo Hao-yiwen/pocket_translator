@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import Security
 
@@ -21,7 +22,8 @@ struct ProviderConfig: Codable, Identifiable, Equatable {
 }
 
 // MARK: - Provider Manager
-class ProviderManager: ObservableObject {
+@MainActor
+final class ProviderManager: ObservableObject {
     static let shared = ProviderManager()
 
     @Published var providers: [ProviderConfig] = []
@@ -142,7 +144,7 @@ func detectInputType(_ text: String) -> InputType {
 }
 
 // MARK: - Configurable Translation Service
-class ConfigurableTranslationService: TranslationService {
+final class ConfigurableTranslationService: TranslationService, @unchecked Sendable {
     let config: ProviderConfig
 
     var name: String { config.name }
@@ -152,13 +154,14 @@ class ConfigurableTranslationService: TranslationService {
     }
 
     func translate(_ text: String, from: String, to: String) async throws -> String {
-        guard let apiKey = ProviderManager.shared.getApiKey(for: config.id),
-              !apiKey.isEmpty else {
+        let apiKey = await MainActor.run { ProviderManager.shared.getApiKey(for: config.id) }
+        guard let apiKey, !apiKey.isEmpty else {
             throw TranslationError.configuration("请在设置中配置 \(config.name) 的 API Key")
         }
 
-        guard let url = URL(string: config.baseURL) else {
-            throw TranslationError.invalidRequest("无效的 API 地址")
+        guard let url = URL(string: config.baseURL),
+              url.scheme?.lowercased() == "https" else {
+            throw TranslationError.invalidRequest("API 地址必须为有效的 HTTPS URL")
         }
 
         var request = URLRequest(url: url)
@@ -308,7 +311,7 @@ struct GoogleErrorResponse: Codable, Hashable {
 }
 
 // MARK: - Google Translation Service
-class GoogleTranslationService: TranslationService {
+final class GoogleTranslationService: TranslationService, @unchecked Sendable {
     let name = "Google"
 
     func translate(_ text: String, from: String, to: String) async throws -> String {
@@ -408,7 +411,7 @@ class GoogleTranslationService: TranslationService {
 }
 
 // MARK: - Translation Error
-enum TranslationError: LocalizedError, Hashable {
+enum TranslationError: LocalizedError, Hashable, Sendable {
     case configuration(String)
     case invalidRequest(String)
     case network(String)
@@ -440,7 +443,7 @@ enum TranslationError: LocalizedError, Hashable {
 }
 
 // MARK: - Translation Result
-struct TranslationResult: Identifiable {
+struct TranslationResult: Identifiable, Sendable {
     let id = UUID()
     let serviceName: String
     let text: String
@@ -548,7 +551,8 @@ struct VisionProviderConfig: Codable, Identifiable, Equatable {
 }
 
 // MARK: - Vision Provider Manager
-class VisionProviderManager: ObservableObject {
+@MainActor
+final class VisionProviderManager: ObservableObject {
     static let shared = VisionProviderManager()
 
     @Published var providers: [VisionProviderConfig] = []
@@ -606,7 +610,7 @@ class VisionProviderManager: ObservableObject {
 }
 
 // MARK: - Vision Translation Service
-class VisionTranslationService {
+final class VisionTranslationService: @unchecked Sendable {
     let config: VisionProviderConfig
 
     var name: String { config.name }
@@ -616,13 +620,14 @@ class VisionTranslationService {
     }
 
     func translateImage(_ imageData: Data, from: String, to: String) async throws -> String {
-        guard let apiKey = VisionProviderManager.shared.getApiKey(for: config.id),
-              !apiKey.isEmpty else {
+        let apiKey = await MainActor.run { VisionProviderManager.shared.getApiKey(for: config.id) }
+        guard let apiKey, !apiKey.isEmpty else {
             throw TranslationError.configuration("请在设置中配置 \(config.name) 的 API Key")
         }
 
-        guard let url = URL(string: config.baseURL) else {
-            throw TranslationError.invalidRequest("无效的 API 地址")
+        guard let url = URL(string: config.baseURL),
+              url.scheme?.lowercased() == "https" else {
+            throw TranslationError.invalidRequest("API 地址必须为有效的 HTTPS URL")
         }
 
         var request = URLRequest(url: url)
@@ -727,11 +732,10 @@ class VisionTranslationService {
     }
 }
 
-import AppKit
-
 // MARK: - Screenshot Manager
 
-class ScreenshotManager {
+@MainActor
+final class ScreenshotManager {
     static let shared = ScreenshotManager()
 
     private init() {}
@@ -739,8 +743,9 @@ class ScreenshotManager {
     /// 打开系统设置中的屏幕录制隐私页（兼容旧版 System Preferences 与新版 System Settings）
     private func openScreenCapturePrivacySettings() {
         let candidates = [
-            "x-apple.systempreferences:com.apple.Settings.extension.PrivacySecurity.extension?Privacy_ScreenCapture",
-            "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture"
+            "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture",
+            "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_ScreenCapture",
+            "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension"
         ]
         for candidate in candidates {
             if let url = URL(string: candidate), NSWorkspace.shared.open(url) {
@@ -763,67 +768,56 @@ class ScreenshotManager {
     func captureScreen() async -> NSImage? {
         // 检查屏幕录制权限
         guard checkScreenCapturePermission() else {
-            await MainActor.run {
-                // 先降低所有窗口层级
-                for window in NSApp.windows {
-                    window.level = .normal
-                }
+            for window in NSApp.windows {
+                window.level = .normal
+            }
 
-                let alert = NSAlert()
-                alert.messageText = "需要屏幕录制权限"
-                alert.informativeText = "请在系统设置中授权「口袋翻译」屏幕录制权限，然后重启应用。"
-                alert.alertStyle = .warning
-                alert.addButton(withTitle: "打开系统设置")
-                alert.addButton(withTitle: "取消")
+            let alert = NSAlert()
+            alert.messageText = "需要屏幕录制权限"
+            alert.informativeText = "请在系统设置中授权「口袋翻译」屏幕录制权限，然后重启应用。"
+            alert.alertStyle = .warning
+            alert.addButton(withTitle: "打开系统设置")
+            alert.addButton(withTitle: "取消")
 
-                let response = alert.runModal()
+            let response = alert.runModal()
 
-                if response == .alertFirstButtonReturn {
-                    self.openScreenCapturePrivacySettings()
-                }
+            if response == .alertFirstButtonReturn {
+                openScreenCapturePrivacySettings()
+            }
 
-                // 恢复窗口层级
-                for window in NSApp.windows {
-                    window.level = .floating
-                }
+            for window in NSApp.windows {
+                window.level = .floating
             }
             return nil
         }
 
-        // 记录截图前的剪贴板变更计数
-        let pasteboard = NSPasteboard.general
-        let changeCountBefore = pasteboard.changeCount
+        let changeCountBefore = NSPasteboard.general.changeCount
 
-        // 使用 screencapture -i -c 进行交互式截图并保存到剪贴板
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture")
-        process.arguments = ["-i", "-c"]  // -i 交互式, -c 保存到剪贴板
+        let didLaunchCapture = await Task.detached(priority: .userInitiated) { () -> Bool in
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture")
+            process.arguments = ["-i", "-c"]
 
-        do {
-            try process.run()
-
-            // 使用异步方式等待进程完成
-            await withCheckedContinuation { continuation in
-                process.terminationHandler = { _ in
-                    continuation.resume()
+            do {
+                try process.run()
+                await withCheckedContinuation { continuation in
+                    process.terminationHandler = { _ in
+                        continuation.resume()
+                    }
                 }
+                try? await Task.sleep(nanoseconds: 200_000_000)
+                return true
+            } catch {
+                print("Screenshot error: \(error)")
+                return false
             }
+        }.value
 
-            // 短暂延迟确保剪贴板更新
-            try? await Task.sleep(nanoseconds: 200_000_000)  // 0.2秒
-
-            // 检查剪贴板是否有变化（用户是否完成截图）
-            if pasteboard.changeCount == changeCountBefore {
-                // 用户取消了截图
-                return nil
-            }
-
-            // 从剪贴板读取图片
-            return getImageFromClipboard()
-        } catch {
-            print("Screenshot error: \(error)")
+        guard didLaunchCapture,
+              NSPasteboard.general.changeCount != changeCountBefore else {
             return nil
         }
+        return getImageFromClipboard()
     }
 
     /// 从剪贴板获取图片

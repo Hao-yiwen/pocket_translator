@@ -87,7 +87,8 @@ pocket_translator/
 
 - **首次截图翻译提示权限**：在「系统设置 → 隐私与安全性 → 屏幕录制」中勾选「口袋翻译」，然后重启应用。
 - **翻译失败 / 401**：检查设置里对应供应商的 API Key 与 Base URL 是否正确。
-- **沙盒网络**：工程已开启 App Sandbox 与出站网络（`network.client`）；自定义供应商请使用 HTTPS。
+- **沙盒网络**：工程已开启 App Sandbox 与出站 HTTPS（`network.client`）；设置中的自定义 API 端点须为 `https://`，与服务端 ATS 默认策略一致。
+- **沙盒截图**：交互式截图依赖系统 `/usr/sbin/screencapture`；若授权后仍无法截图，请在真机上确认沙盒是否允许拉起该工具（见 PR 人工验证清单）。
 
 ## 安装说明（发布包）
 
